@@ -106,20 +106,21 @@ void RealmObjectClass<T>::get_property(ContextType ctx, ObjectType object, const
 }
 
 template<typename T>
-bool RealmObjectClass<T>::set_property(ContextType ctx, ObjectType object, const String &property, ValueType value) {
+bool RealmObjectClass<T>::set_property(ContextType ctx, ObjectType object, const String &property_name, ValueType value) {
     auto realm_object = get_internal<T, RealmObjectClass<T>>(object);
 
-    std::string property_name = property;
-    if (!realm_object->get_object_schema().property_for_name(property_name)) {
+    std::string name = property_name;
+    const Property* property = realm_object->get_object_schema().property_for_name(name);
+    if (!property || realm_object->get_object_schema().property_is_computed(*property)) {
         return false;
     }
 
     try {
         NativeAccessor<T> accessor(ctx, realm_object->realm());
-        realm_object->set_property_value(accessor, property_name, value, true);
+        realm_object->set_property_value(accessor, name, value, true);
     }
     catch (TypeErrorException &ex) {
-        throw TypeErrorException(realm_object->get_object_schema().name + "." + property_name, ex.type());
+        throw TypeErrorException(realm_object->get_object_schema().name + "." + name, ex.type());
     }
     return true;
 }
